@@ -58,7 +58,18 @@ function performUnitOfWork(fiber) {
     }
 
     // 给children新建fiber
-    
+    const elements = fiber.props.children
+    let prevSibling = null
+
+    for (let i = 0; i < elements.length; i++) {
+        const newFiber = {
+            type: elements[i].type,
+            props: elements[i].props,
+            parent: fiber,
+            child: null,
+            sibiling: null
+        }
+    }
 }
 
 export default render
