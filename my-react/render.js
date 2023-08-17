@@ -32,6 +32,7 @@ let wipRoot = null
 
 // commit阶段
 function commitRoot() {
+    deletion.forEach(commitWork)
     commitWork(wipRoot.child)
     wipRoot = null
 }
@@ -89,10 +90,15 @@ function commitWork() {
     const parentDOM = fiber.parent.dom
     if (fiber.effectTag === "PLACEMENT" && fiber.dom) {
         parentDOM.append(fiber.dom)
-    } else if (fiber.effectTag === "DELETION" && fiber.dom) {
+        return
+    }
+    if (fiber.effectTag === "DELETION" && fiber.dom) {
         parentDOM.removeChild(fiber.dom)
-    } else if (fiber.effectTag === "UPDATE" && fiber.DOM) {
+        return
+    }
+    if (fiber.effectTag === "UPDATE" && fiber.dom) {
         updateDOM(fiber.dom, fiber.alternate.props, fiber.props)
+        return
     }
     parentDOM.append(parent.dom)
     commitWork(fiber.child)
@@ -147,15 +153,26 @@ function reconcileChildren(wipFiber, element) {
             }
         }
 
+        if (element && !sameType) {
+            newFiber = {
+                type: element.type,
+                props: element.props,
+                dom: null,
+                parent: wipFiber,
+                alternate: null,
+                effectTag: "PLACEMENT"
+            }
+        }
+
         if (oldFiber && !sameType) {
             // 删除
             oldFiber.effectTag = "DELETION"
             deletion.push(oldFiber)
         }
-        
-        if (oldFiber) {
-            oldFiber = oldFiber.sibiling
-        }
+
+        // if (oldFiber) {
+        //     oldFiber = oldFiber.sibiling
+        // }
     }
 }
 
