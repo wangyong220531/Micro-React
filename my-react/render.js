@@ -22,7 +22,8 @@ function render(element, container) {
         },
         sibiling: null,
         child: null,
-        parent: null
+        parent: null,
+        alternate: currentRoot
     }
 }
 
@@ -58,9 +59,13 @@ requestIdleCallback(workLoop)
 
 // function wipRoot() {}
 
-function commitRoot() {}
+function commitRoot() {
+    commitWork(wipRoot.child)
+}
 
 function updateDOM() {
+    const isEvent = key => key.slice(0, 2) === "on"
+    // 删除已经没有的props
     Object.keys(prevProps)
         .filter(key => key !== "children")
         .filter(key => !key in nextProps)
@@ -68,6 +73,7 @@ function updateDOM() {
             dom[key] = ""
         })
 
+    // 赋予新的或者改变的props
     Object.keys(nextProps)
         .filter(key => key !== "children")
         .filter(key => !key in prevProps || prevProps(key) !== nextProps[key])
@@ -80,6 +86,7 @@ function commitWork() {
     if (!fiber) {
         return
     }
+    const parentDOM = fiber.parent.dom
     if (fiber.effectTag === "PLACEMENT" && fiber.dom) {
         parentDOM.append(fiber.dom)
     } else if (fiber.effectTag === "DELETION" && fiber.dom) {
@@ -87,7 +94,6 @@ function commitWork() {
     } else if (fiber.effectTag === "UPDATE" && fiber.DOM) {
         updateDOM(fiber.dom, fiber.alternate.props, fiber.props)
     }
-    const parentDOM = fiber.parent.dom
     parentDOM.append(parent.dom)
     commitWork(fiber.child)
     commitWork(fiber.sibiling)
@@ -125,9 +131,9 @@ function reconcileChildren(wipFiber, element) {
     let oldFiber = wipFiber.alternate && wipFiber.alternate.child
     let prevSibling = null
 
-    while (index < element.length || oldFiber) {
+    while (index < element.length || oldFiber !== null) {
         const element = elements(index)
-        const sameType = element && element.type === oldFiber.type
+        const sameType = element && oldFiber && element.type === oldFiber.type
         let newFiber = null
 
         if (sameType) {
@@ -140,11 +146,13 @@ function reconcileChildren(wipFiber, element) {
                 effectTag: "UPDATE"
             }
         }
+
         if (oldFiber && !sameType) {
             // 删除
             oldFiber.effectTag = "DELETION"
             deletion.push(oldFiber)
         }
+        
         if (oldFiber) {
             oldFiber = oldFiber.sibiling
         }

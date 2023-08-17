@@ -1,7 +1,17 @@
 import { createElement, render } from "./my-react/index"
 
-const element = createElement("h1", { id: "title", style: "background:skyblue", class: "hello" }, "Hello World", createElement("a", { href: "https://bilibili.com", style: "color: yellow" }, "BiliBili"))
+const handleInput = e => {
+    render(e.target.value)
+}
+
+const element = createElement("div", null, createElement("input", { oninput: handleInput }, null), createElement("h1", null, "hello"))
 
 const container = document.getElementById("root")
 
 render(element, container)
+
+/* 
+  diff算法
+  获取旧Fiber和新Fiber
+  
+ */

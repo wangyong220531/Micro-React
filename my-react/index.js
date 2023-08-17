@@ -1,10 +1,10 @@
-import createElement from "./createElement"
-import render from "./render"
+// import createElement from "./createElement"
+// import render from "./render"
 
-export {
-    createElement,
-    render
-}
+// export {
+//     createElement,
+//     render
+// }
 
 // const objA = {
 //     name: "xxx",
@@ -17,3 +17,5 @@ export {
 // Object.assign(objB, objA)
 
 // console.log(objB)
+
+console.log("onClick".startsWith("on"));
