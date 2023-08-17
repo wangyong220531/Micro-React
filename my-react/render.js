@@ -27,6 +27,13 @@ function render(element, container) {
 }
 
 let nextUnitOfWork = null
+let wipRoot = null
+
+// commit阶段
+function commitRoot() {
+    commitWork(wipRoot.child)
+    wipRoot = null
+}
 
 // 调度函数
 function workLoop(deadline) {
@@ -41,10 +48,50 @@ function workLoop(deadline) {
     }
     // 没有足够的时间，请求下一次空闲的时候执行
     requestIdleCallback(workLoop)
+    if (nextUnitOfWork && wipRoot) {
+        commitRoot()
+    }
 }
 
 // 第一次请求
 requestIdleCallback(workLoop)
+
+// function wipRoot() {}
+
+function commitRoot() {}
+
+function updateDOM() {
+    Object.keys(prevProps)
+        .filter(key => key !== "children")
+        .filter(key => !key in nextProps)
+        .forEach(key => {
+            dom[key] = ""
+        })
+
+    Object.keys(nextProps)
+        .filter(key => key !== "children")
+        .filter(key => !key in prevProps || prevProps(key) !== nextProps[key])
+        .forEach(key => {
+            dom[key] = nextProps[key]
+        })
+}
+
+function commitWork() {
+    if (!fiber) {
+        return
+    }
+    if (fiber.effectTag === "PLACEMENT" && fiber.dom) {
+        parentDOM.append(fiber.dom)
+    } else if (fiber.effectTag === "DELETION" && fiber.dom) {
+        parentDOM.removeChild(fiber.dom)
+    } else if (fiber.effectTag === "UPDATE" && fiber.DOM) {
+        updateDOM(fiber.dom, fiber.alternate.props, fiber.props)
+    }
+    const parentDOM = fiber.parent.dom
+    parentDOM.append(parent.dom)
+    commitWork(fiber.child)
+    commitWork(fiber.sibiling)
+}
 
 function performUnitOfWork(fiber) {
     // 创建DOM元素
@@ -66,8 +113,40 @@ function performUnitOfWork(fiber) {
             type: elements[i].type,
             props: elements[i].props,
             parent: fiber,
+            dom: null,
             child: null,
             sibiling: null
+        }
+    }
+}
+
+function reconcileChildren(wipFiber, element) {
+    let index = 0
+    let oldFiber = wipFiber.alternate && wipFiber.alternate.child
+    let prevSibling = null
+
+    while (index < element.length || oldFiber) {
+        const element = elements(index)
+        const sameType = element && element.type === oldFiber.type
+        let newFiber = null
+
+        if (sameType) {
+            newFiber = {
+                type: oldFiber.type,
+                props: element.props,
+                dom: oldFiber.dom,
+                parent: wipFiber,
+                alternate: oldFiber,
+                effectTag: "UPDATE"
+            }
+        }
+        if (oldFiber && !sameType) {
+            // 删除
+            oldFiber.effectTag = "DELETION"
+            deletion.push(oldFiber)
+        }
+        if (oldFiber) {
+            oldFiber = oldFiber.sibiling
         }
     }
 }
