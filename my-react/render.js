@@ -154,6 +154,21 @@ function performUnitOfWork(fiber) {
     }
 }
 
+// 记住上一次的fiber
+let wipFiber = null
+let hookIndex = null
+
+// 处理函数式组件
+function updateFunctionComponent(fiber) {
+    wipFiber = null
+    hookIndex = 0
+    const children = [fiber.type(fiber.props)]
+    reconcileChildren(fiber, children)
+}
+
+export function useState(init){
+}
+
 // 处理非函数式组件
 function updateHostComponent(fiber) {
     // 创建DOM元素
@@ -165,7 +180,12 @@ function updateHostComponent(fiber) {
     const elements = fiber.props.children
 
     // 新建newFiber，构建fiber
-    reconcileChildren(fiber, children)
+    reconcileChildren(fiber, elements)
+}
+
+function updateFunctionComponent(fiber) {
+    const children = [fiber, type(fiber.props)]
+    reconcileChildren(fiber.children)
 }
 
 function reconcileChildren(wipFiber, element) {
