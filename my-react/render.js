@@ -66,10 +66,19 @@ function commitRoot() {
 
 function updateDOM() {
     const isEvent = key => key.slice(0, 2) === "on"
-    // 删除已经没有的props
+    // 删除已经没有的props或者发生变化的处理函数
     Object.keys(prevProps)
         .filter(key => key !== "children")
         .filter(key => !key in nextProps)
+        .forEach(key => {
+            const eventType = key.toLowerCase().substring(2)
+            dom.removeEventListener(eventType, prevProps[key])
+        })
+
+    // 添加事件处理函数
+    Object.keys(nextProps)
+        .filter(isEvent)
+        .filter(key => prevProps[key] !== nextProps[key])
         .forEach(key => {
             dom[key] = ""
         })
@@ -83,10 +92,16 @@ function updateDOM() {
         })
 }
 
-function commitWork() {
+function commitWork(fiber) {
     if (!fiber) {
         return
     }
+
+    let domParentFiber = fiber.parent
+    while (!domParentFiber.dom) {
+        domParentFiber = domParentFiber.parent
+    }
+
     const parentDOM = fiber.parent.dom
     if (fiber.effectTag === "PLACEMENT" && fiber.dom) {
         parentDOM.append(fiber.dom)
@@ -111,6 +126,13 @@ function performUnitOfWork(fiber) {
         fiber.dom = createDOM(fiber)
     }
 
+    const isFunctionComponent = fiber.type instanceof Function
+    if (isFunctionComponent) {
+        updateFunctionComponent(fiber)
+    } else {
+        updateHostComponent(fiber)
+    }
+
     // 追加到父节点
     if (fiber.parent) {
         fiber.parent.dom.append(fiber.dom)
@@ -130,6 +152,20 @@ function performUnitOfWork(fiber) {
             sibiling: null
         }
     }
+}
+
+// 处理非函数式组件
+function updateHostComponent(fiber) {
+    // 创建DOM元素
+    if (!fiber.dom) {
+        fiber.dom = createDOM(fiber)
+    }
+
+    // 给children新建fiber
+    const elements = fiber.props.children
+
+    // 新建newFiber，构建fiber
+    reconcileChildren(fiber, children)
 }
 
 function reconcileChildren(wipFiber, element) {
@@ -154,6 +190,7 @@ function reconcileChildren(wipFiber, element) {
         }
 
         if (element && !sameType) {
+            // 新建
             newFiber = {
                 type: element.type,
                 props: element.props,

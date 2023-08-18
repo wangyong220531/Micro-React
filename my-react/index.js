@@ -18,4 +18,4 @@
 
 // console.log(objB)
 
-console.log("onClick".startsWith("on"));
+console.log("onclick".substring(2));
